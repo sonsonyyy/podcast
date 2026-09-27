@@ -1,15 +1,19 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Get,
   NotFoundException,
   Param,
+  ParseIntPipe,
   Post,
   Query,
+  ValidationPipe,
 } from '@nestjs/common';
 import { EpisodesService } from './episodes.service';
 import { CreateEpisodeDto } from './dto/create-episode.dto';
 import { ConfigService } from '../config/config.service';
+import { IsPositivePipe } from '../pipes/is-positive/is-positive.pipe';
 
 @Controller('episodes')
 export class EpisodesController {
@@ -19,7 +23,11 @@ export class EpisodesController {
   ) {}
 
   @Get()
-  findAll(@Query('sort') sort: 'asc' | 'desc' = 'desc') {
+  findAll(
+    @Query('sort') sort: 'asc' | 'desc' = 'desc',
+    @Query('limit', new DefaultValuePipe(100), ParseIntPipe, IsPositivePipe)
+    limit: number,
+  ) {
     console.log(sort);
     this.configService.logMessage();
     return this.episodeService.findAll(sort);
@@ -44,7 +52,7 @@ export class EpisodesController {
   }
 
   @Post()
-  create(@Body() input: CreateEpisodeDto) {
+  create(@Body(ValidationPipe) input: CreateEpisodeDto) {
     this.configService.logMessage();
     return this.episodeService.create(input);
   }
