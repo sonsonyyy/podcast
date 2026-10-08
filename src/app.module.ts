@@ -5,6 +5,7 @@ import { EpisodesModule } from './episodes/episodes.module';
 import { TopicsModule } from './topics/topics.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 
 @Module({
   imports: [
@@ -17,17 +18,25 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const dbType = configService.get<'postgres' | 'mysql'>('DB_TYPE', 'postgres');
+        const dbType = configService.get<'postgres' | 'mysql'>(
+          'DB_TYPE',
+          'postgres',
+        );
 
         return {
           type: dbType,
           host: configService.get<string>('DB_HOST', 'localhost'),
-          port: configService.get<number>('DB_PORT', dbType === 'postgres' ? 5432 : 3306),
+          port: configService.get<number>(
+            'DB_PORT',
+            dbType === 'postgres' ? 5432 : 3306,
+          ),
           username: configService.get<string>('DB_USERNAME', 'root'),
           password: configService.get<string>('DB_PASSWORD', ''),
           database: configService.get<string>('DB_DATABASE', 'app_db'),
-          entities: [],
+          autoLoadEntities: true,
+          namingStrategy: new SnakeNamingStrategy(),
           synchronize: process.env.NODE_ENV !== 'production',
+          dropSchema: true,
           logging: true,
         };
       },

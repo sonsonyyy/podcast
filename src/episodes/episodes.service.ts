@@ -1,33 +1,43 @@
 import { Injectable } from '@nestjs/common';
 import { Episode } from './entity/episode.entity';
-import { CreateEpisodeDto } from './dto/create-episode.dto';
-import { randomUUID } from 'crypto';
+import { EpisodeDto } from './dto/episode.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class EpisodesService {
-  private episodes: Episode[] = [];
+  constructor(
+    @InjectRepository(Episode)
+    private episodeRepository: Repository<Episode>,
+  ) {}
 
-  async findAll(sort: 'asc' | 'desc' = 'desc') {
-    const sortAsc = (a: Episode, b: Episode) => (a.name > b.name ? 1 : -1);
-    const sortDesc = (a: Episode, b: Episode) => (a.name < b.name ? 1 : -1);
-
-    return sort === 'asc'
-      ? this.episodes.sort(sortAsc)
-      : this.episodes.sort(sortDesc);
+  findAll(): Promise<Episode[]> {
+    return this.episodeRepository.find();
   }
 
-  async findFeaturedEpisodes() {
-    return this.episodes.filter((episode) => episode.featured);
+  async findFeaturedEpisodes(): Promise<Episode[]> {
+    return this.episodeRepository.findBy({ isFeatured: true });
   }
 
-  async findOne(id: string) {
-    return this.episodes.find((episode) => episode.id === id);
+  async findOne(uuid: string): Promise<Episode | null> {
+    return this.episodeRepository.findOneBy({ uuid });
   }
 
-  async create(createEpisodeDto: CreateEpisodeDto) {
-    const newEpisode = { ...createEpisodeDto, id: randomUUID() };
-    this.episodes.push(newEpisode);
+  async delete(uuid: string): Promise<void> {
+    await this.episodeRepository.softDelete(uuid);
+  }
 
+  async create(episodeDto: EpisodeDto): Promise<Episode> {
+    const newEpisode = await this.episodeRepository.save(episodeDto);
     return newEpisode;
+  }
+
+  async update(uuid: string, episodeDto: EpisodeDto): Promise<Episode> {
+    const updatedEpisode = await this.episodeRepository.update(
+      { uuid: uuid },
+      episodeDto,
+      { returning: '*' },
+    );
+    return updatedEpisode.raw[0];
   }
 }
